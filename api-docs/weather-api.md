@@ -7,6 +7,7 @@
 - [Endpoints](#endpoints)
   - [Get Current Weather](#get-current-weather)
   - [Get Weather Forecast](#get-weather-forecast)
+- [Interactive API Examples](#interactive-api-examples)
 - [Rate Limiting](#rate-limiting)
 - [Code Examples](#code-examples)
   - [Python](#python)
@@ -102,6 +103,93 @@ Returns weather forecast data for the next 5 days.
     ]
 }
 ```
+
+## Interactive API Examples
+
+You can test the Weather API endpoints directly from your browser using our interactive console:
+
+### OpenAPI Specification
+```yaml
+openapi: 3.0.0
+info:
+  title: Weather API
+  version: 1.0.0
+  description: API for retrieving weather data and forecasts
+
+servers:
+  - url: https://api.weatherapi.example.com/v1
+
+paths:
+  /current:
+    get:
+      summary: Get Current Weather
+      parameters:
+        - name: city
+          in: query
+          required: true
+          schema:
+            type: string
+          description: City name (e.g., "London")
+        - name: country
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Country code (e.g., "UK")
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Your API key
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeatherResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  schemas:
+    WeatherResponse:
+      type: object
+      properties:
+        location:
+          type: object
+          properties:
+            city:
+              type: string
+            country:
+              type: string
+            lat:
+              type: number
+            lon:
+              type: number
+        current:
+          type: object
+          properties:
+            temperature:
+              type: number
+            humidity:
+              type: number
+            condition:
+              type: string
+            wind_speed:
+              type: number
+```
+
+### Try It Out
+You can test the API using our interactive console at [https://api.weatherapi.example.com/docs](https://api.weatherapi.example.com/docs) or using the embedded console below:
+
+<div class="swagger-container">
+  <!-- Note: In a real implementation, this would be replaced with an actual Swagger UI embed -->
+  <iframe src="https://api.weatherapi.example.com/docs" width="100%" height="800px" frameborder="0"></iframe>
+</div>
 
 **Error Responses:**
 | Status Code | Description                           |
