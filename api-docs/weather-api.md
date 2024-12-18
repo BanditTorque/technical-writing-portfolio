@@ -200,32 +200,197 @@ You can test the API using our interactive console at [https://api.weatherapi.ex
 | 429         | Too Many Requests - Rate limit exceeded |
 | 500         | Internal Server Error                |
 
-**Error Response Examples:**
-```json
-{
-    "error": {
-        "code": 400,
-        "message": "Invalid city name provided"
-    }
-}
-```
+## Error Guide
 
+### Common Error Scenarios
+
+#### 1. Authentication Errors (401)
 ```json
 {
     "error": {
         "code": 401,
-        "message": "Invalid API key"
+        "message": "Invalid API key provided"
     }
 }
 ```
+**Common Causes:**
+- Expired API key
+- Malformed API key
+- Unauthorized IP address
+- Missing X-API-Key header
 
+**Resolution Steps:**
+1. Verify your API key in the dashboard
+2. Check if your IP is whitelisted
+3. Ensure the key is properly formatted in the header
+
+#### 2. Rate Limit Errors (429)
 ```json
 {
     "error": {
         "code": 429,
         "message": "Rate limit exceeded",
-        "retry_after": 3600
+        "retry_after": 3600,
+        "limit": "60 requests per hour"
     }
+}
+```
+**Best Practices:**
+```python
+import time
+import requests
+
+def get_weather_with_retry(city, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(f"{BASE_URL}/current", 
+                                 headers={"X-API-Key": API_KEY},
+                                 params={"city": city})
+            
+            if response.status_code == 429:
+                retry_after = int(response.headers.get('Retry-After', 60))
+                time.sleep(retry_after)
+                continue
+                
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            if attempt == max_retries - 1:
+                raise e
+            time.sleep(2 ** attempt)  # Exponential backoff
+```
+
+#### 3. Invalid Parameters (400)
+```json
+{
+    "error": {
+        "code": 400,
+        "message": "Invalid parameters",
+        "details": {
+            "city": "City name cannot be empty",
+            "days": "Forecast days must be between 1 and 10"
+        }
+    }
+}
+```
+**Common Issues:**
+- Empty or invalid city names
+- Invalid country codes
+- Out of range forecast days
+- Missing required parameters
+
+**Example of Proper Parameters:**
+```javascript
+// Incorrect
+fetch(`${BASE_URL}/forecast?city=&days=15`)
+
+// Correct
+fetch(`${BASE_URL}/forecast?city=London&country=UK&days=5`)
+```
+
+#### 4. Network Timeouts (408)
+```json
+{
+    "error": {
+        "code": 408,
+        "message": "Request timeout"
+    }
+}
+```
+**Handling Timeouts:**
+```javascript
+async function getWeatherWithTimeout(city, timeout = 5000) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        const response = await fetch(`${BASE_URL}/current?city=${city}`, {
+            headers: { "X-API-Key": API_KEY },
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        return await response.json();
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out');
+        }
+        throw error;
+    }
+}
+```
+
+#### 5. Server Errors (500, 502, 503)
+```json
+{
+    "error": {
+        "code": 500,
+        "message": "Internal server error",
+        "request_id": "f7a8b934-1c63-4d12-bc84-f3c71e4516ae"
+    }
+}
+```
+**Fallback Strategy:**
+```python
+def get_weather_with_fallback(city):
+    try:
+        # Primary API endpoint
+        response = requests.get(f"{BASE_URL}/current", 
+                              headers={"X-API-Key": API_KEY},
+                              params={"city": city})
+        
+        if response.status_code >= 500:
+            # Fallback to cached data
+            return get_cached_weather(city)
+            
+        return response.json()
+        
+    except requests.exceptions.RequestException:
+        # Fallback to cached data
+        return get_cached_weather(city)
+```
+
+### Error Handling Best Practices
+
+1. **Always Check Status Codes**
+```javascript
+if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`API Error: ${error.message}`);
+}
+```
+
+2. **Implement Retry Logic**
+```python
+def retry_with_exponential_backoff(func, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise e
+            time.sleep(2 ** attempt)
+```
+
+3. **Cache Successful Responses**
+```javascript
+const weatherCache = new Map();
+
+async function getCachedWeather(city) {
+    const cacheKey = `weather_${city}`;
+    const cachedData = weatherCache.get(cacheKey);
+    
+    if (cachedData && Date.now() - cachedData.timestamp < 1800000) {
+        return cachedData.data;
+    }
+    
+    const data = await getCurrentWeather(city);
+    weatherCache.set(cacheKey, {
+        data,
+        timestamp: Date.now()
+    });
+    
+    return data;
 }
 ```
 
