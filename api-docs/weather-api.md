@@ -11,6 +11,9 @@
 - [Code Examples](#code-examples)
   - [Python](#python)
   - [JavaScript](#javascript)
+  - [PHP](#php)
+  - [Ruby](#ruby)
+  - [Java](#java)
 - [Official SDKs and Libraries](#official-sdks-and-libraries)
 - [Versioning and Changelog](#versioning-and-changelog)
 - [Security Best Practices](#security-best-practices)
@@ -190,6 +193,102 @@ async function getCurrentWeather(city, country) {
 getCurrentWeather('London', 'UK')
     .then(weather => console.log(`Temperature: ${weather.current.temperature}°C`))
     .catch(error => console.error('Error:', error));
+```
+
+### PHP
+```php
+<?php
+$apiKey = 'your_api_key_here';
+$baseUrl = 'https://api.weatherapi.example.com/v1';
+
+function getCurrentWeather($city, $country = null) {
+    global $apiKey, $baseUrl;
+    
+    $params = http_build_query([
+        'city' => $city,
+        'country' => $country
+    ]);
+    
+    $opts = [
+        'http' => [
+            'header' => "X-API-Key: $apiKey"
+        ]
+    ];
+    
+    $context = stream_context_create($opts);
+    $response = file_get_contents("$baseUrl/current?$params", false, $context);
+    return json_decode($response, true);
+}
+
+// Example usage
+$weather = getCurrentWeather('London', 'UK');
+echo "Temperature: {$weather['current']['temperature']}°C\n";
+```
+
+### Ruby
+```ruby
+require 'net/http'
+require 'json'
+
+API_KEY = 'your_api_key_here'
+BASE_URL = 'https://api.weatherapi.example.com/v1'
+
+def get_current_weather(city, country = nil)
+  uri = URI("#{BASE_URL}/current")
+  params = { city: city, country: country }
+  uri.query = URI.encode_www_form(params)
+  
+  req = Net::HTTP::Get.new(uri)
+  req['X-API-Key'] = API_KEY
+  
+  response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+    http.request(req)
+  end
+  
+  JSON.parse(response.body)
+end
+
+# Example usage
+weather = get_current_weather('London', 'UK')
+puts "Temperature: #{weather['current']['temperature']}°C"
+```
+
+### Java
+```java
+import java.net.URI;
+import java.net.http.*;
+import java.util.HashMap;
+import org.json.JSONObject;
+
+public class WeatherAPI {
+    private static final String API_KEY = "your_api_key_here";
+    private static final String BASE_URL = "https://api.weatherapi.example.com/v1";
+    
+    public static JSONObject getCurrentWeather(String city, String country) throws Exception {
+        String params = String.format("city=%s&country=%s", city, country);
+        HttpClient client = HttpClient.newHttpClient();
+        
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(BASE_URL + "/current?" + params))
+            .header("X-API-Key", API_KEY)
+            .build();
+            
+        HttpResponse<String> response = client.send(request, 
+            HttpResponse.BodyHandlers.ofString());
+            
+        return new JSONObject(response.body());
+    }
+    
+    public static void main(String[] args) {
+        try {
+            JSONObject weather = getCurrentWeather("London", "UK");
+            System.out.printf("Temperature: %d°C%n", 
+                weather.getJSONObject("current").getInt("temperature"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
 ```
 
 ## Official SDKs and Libraries
